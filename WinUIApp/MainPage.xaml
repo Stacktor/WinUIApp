@@ -4,7 +4,7 @@
     xmlns:local="using:WinUIApp"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    Background="Transparent">
 
     <Grid Padding="20">
         <Grid.RowDefinitions>
@@ -13,12 +13,12 @@
         </Grid.RowDefinitions>
 
         <AppBarToggleButton x:Name="ThemeToggleButton"
-                    Label="Toggle Theme"
+                    Label="Settings"
                     Click="ThemeToggleButton_Click"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top">
             <AppBarToggleButton.Icon>
-                <FontIcon Glyph="&#xE706;" FontFamily="Segoe MDL2 Assets" />
+                <FontIcon Glyph="&#xE713;" FontFamily="Segoe MDL2 Assets" />
             </AppBarToggleButton.Icon>
         </AppBarToggleButton>
 
