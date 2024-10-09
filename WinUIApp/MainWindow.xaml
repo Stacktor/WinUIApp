@@ -6,6 +6,49 @@
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     Title="WinUIApp">
     <Grid Background="Transparent">
-        <Frame x:Name="MainFrame" />
+
+        <!-- Custom Title Bar -->
+        <Grid x:Name="AppTitleBar"
+              Background="Transparent"
+              Height="32"
+              VerticalAlignment="Top">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- App Title -->
+            <TextBlock Text="WinUIApp"
+                       VerticalAlignment="Center"
+                       Margin="12,0,0,0"
+                       FontSize="14"
+                       Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+
+            <!-- Window Control Buttons -->
+            <StackPanel Orientation="Horizontal" Grid.Column="1">
+                <Button x:Name="MinimizeButton"
+                        Click="MinimizeButton_Click"
+                        Style="{StaticResource CaptionButtonStyle}">
+                    <ToolTipService.ToolTip>Minimize</ToolTipService.ToolTip>
+                    <FontIcon Glyph="&#xE921;" />
+                </Button>
+                <Button x:Name="MaximizeButton"
+                        Click="MaximizeButton_Click"
+                        Style="{StaticResource CaptionButtonStyle}">
+                    <ToolTipService.ToolTip>Maximize</ToolTipService.ToolTip>
+                    <FontIcon Glyph="&#xE922;" />
+                </Button>
+                <Button x:Name="CloseButton"
+                        Click="CloseButton_Click"
+                        Style="{StaticResource CaptionButtonStyle}">
+                    <ToolTipService.ToolTip>Close</ToolTipService.ToolTip>
+                    <FontIcon Glyph="&#xE8BB;" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Content -->
+        <Frame x:Name="MainFrame"
+               Margin="0,32,0,0" />
     </Grid>
 </Window>

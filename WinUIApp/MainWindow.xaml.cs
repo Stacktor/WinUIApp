@@ -1,30 +1,50 @@
+using Microsoft.UI;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using System;
 using System.Runtime.InteropServices;
+using Windows.Graphics;
 using WinRT; // For 'As' extension method
+using WinRT.Interop; // For WindowNative.GetWindowHandle
 
 namespace WinUIApp
 {
     public sealed partial class MainWindow : Window
     {
+        // Existing fields for Mica backdrop
         private WindowsSystemDispatcherQueueHelper m_wsdqHelper;
         private MicaController m_micaController;
         private SystemBackdropConfiguration m_configurationSource;
+
+        // New field for window handle
+        private IntPtr _hwnd;
 
         public MainWindow()
         {
             this.InitializeComponent();
 
-            // Navigate to the initial page
-            MainFrame.Navigate(typeof(LoginPage));
+            // Get the window handle (HWND)
+            _hwnd = WindowNative.GetWindowHandle(this);
+
+            // Extend content into the title bar
+            this.ExtendsContentIntoTitleBar = true;
+            this.SetTitleBar(AppTitleBar);
 
             // Apply Mica backdrop
             TrySetMicaBackdrop();
+
+            // Navigate to the initial page
+            MainFrame.Navigate(typeof(LoginPage));
+
+            // Subscribe to window size changed event
+            this.SizeChanged += MainWindow_SizeChanged;
         }
 
+        // Existing Mica backdrop methods
         private bool TrySetMicaBackdrop()
         {
             if (MicaController.IsSupported())
@@ -91,6 +111,85 @@ namespace WinUIApp
                 _ => SystemBackdropTheme.Default
             };
         }
+
+        // New methods for custom title bar functionality
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            ShowWindow(hWnd, ShowWindowCommands.Minimize);
+        }
+
+        private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+
+            if (IsWindowMaximized(hWnd))
+            {
+                ShowWindow(hWnd, ShowWindowCommands.Restore);
+            }
+            else
+            {
+                ShowWindow(hWnd, ShowWindowCommands.Maximize);
+            }
+        }
+
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
+
+        // P/Invoke declarations
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, ShowWindowCommands nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsZoomed(IntPtr hWnd);
+
+        private bool IsWindowMaximized(IntPtr hWnd)
+        {
+            return IsZoomed(hWnd);
+        }
+
+        private enum ShowWindowCommands : int
+        {
+            Hide = 0,
+            Normal = 1,
+            ShowMinimized = 2,
+            Maximize = 3,
+            ShowMaximized = 3,
+            ShowNoActivate = 4,
+            Show = 5,
+            Minimize = 6,
+            ShowMinNoActive = 7,
+            ShowNA = 8,
+            Restore = 9,
+            ShowDefault = 10,
+            ForceMinimize = 11
+        }
+
+        private void MainWindow_SizeChanged(object sender, WindowSizeChangedEventArgs e)
+        {
+            var hWnd = WindowNative.GetWindowHandle(this);
+
+            if (IsWindowMaximized(hWnd))
+            {
+                // Change maximize button icon to 'Restore Down'
+                ((FontIcon)MaximizeButton.Content).Glyph = "\uE923"; // Restore Down icon
+
+                // Set tooltip
+                ToolTipService.SetToolTip(MaximizeButton, "Restore Down");
+            }
+            else
+            {
+                // Change maximize button icon to 'Maximize'
+                ((FontIcon)MaximizeButton.Content).Glyph = "\uE922"; // Maximize icon
+
+                // Set tooltip
+                ToolTipService.SetToolTip(MaximizeButton, "Maximize");
+            }
+        }
+
     }
 
     // Helper class to initialize the Windows System Dispatcher Queue
