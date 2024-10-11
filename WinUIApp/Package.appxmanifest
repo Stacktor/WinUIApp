@@ -10,7 +10,7 @@
   <Identity
     Name="6752eb2f-91b1-49a5-8fe8-732b8597827a"
     Publisher="CN=tgraf"
-    Version="1.0.0.0" />
+    Version="1.0.4.0" />
 
   <mp:PhoneIdentity PhoneProductId="6752eb2f-91b1-49a5-8fe8-732b8597827a" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
@@ -47,5 +47,7 @@
 
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
+    <Capability Name="internetClientServer"/>
+    <Capability Name="internetClient"/>
   </Capabilities>
 </Package>
