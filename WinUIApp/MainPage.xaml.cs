@@ -3,28 +3,107 @@ using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
+using Windows.Storage.Pickers;
 
 namespace WinUIApp
 {
     public sealed partial class MainPage : Page
     {
-        private List<string> dummyHostnames = new List<string> {
+        private List<string> dummyHostnames = new List<string>
+        {
+            "this-pc",
             "localhost",
             "google.com",
             "microsoft.com",
-            "example.com"
+            "example.com",
+            "github.com",
+            "stackoverflow.com"
         };
+
+        private List<string> favoriteHostnames = new List<string>();
+        private string currentCommand = string.Empty;
+        private bool isCommandRunning = false;
 
         public MainPage()
         {
             this.InitializeComponent();
-            HostnameAutoSuggestBox.ItemsSource = dummyHostnames;
+
+            LoadFavorites();
+            UpdateHostnameSuggestions();
+
+            // Set initial theme state
+            ThemeToggleButton.IsChecked = this.ActualTheme == ElementTheme.Dark;
+        }
+
+        private void LoadFavorites()
+        {
+            try
+            {
+                var settings = Windows.Storage.ApplicationData.Current.LocalSettings;
+                if (settings.Values.ContainsKey("FavoriteHostnames"))
+                {
+                    var favoritesString = settings.Values["FavoriteHostnames"] as string;
+                    if (!string.IsNullOrEmpty(favoritesString))
+                    {
+                        favoriteHostnames = new List<string>(favoritesString.Split(','));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Just log the error, don't interrupt app startup
+                System.Diagnostics.Debug.WriteLine($"Error loading favorites: {ex.Message}");
+            }
+        }
+
+        private void SaveFavorites()
+        {
+            try
+            {
+                var settings = Windows.Storage.ApplicationData.Current.LocalSettings;
+                settings.Values["FavoriteHostnames"] = string.Join(",", favoriteHostnames);
+            }
+            catch (Exception ex)
+            {
+                ShowMessage("Error", $"Failed to save favorites: {ex.Message}");
+            }
+        }
+
+        private void UpdateHostnameSuggestions()
+        {
+            var allSuggestions = new List<string>();
+            allSuggestions.AddRange(favoriteHostnames);
+
+            // Add non-duplicate dummy hostnames
+            foreach (var hostname in dummyHostnames)
+            {
+                if (!allSuggestions.Contains(hostname))
+                {
+                    allSuggestions.Add(hostname);
+                }
+            }
+
+            HostnameAutoSuggestBox.ItemsSource = allSuggestions;
         }
 
         private string GetSelectedHostname()
         {
-            return HostnameAutoSuggestBox.Text?.Trim();
+            string hostname = HostnameAutoSuggestBox.Text?.Trim();
+
+            // Replace "this-pc" with empty string for local commands
+            if (hostname?.Equals("this-pc", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                // For certain commands that need a specific local identifier
+                // We'll handle this special case in the individual command methods
+            }
+
+            return hostname;
         }
 
         private bool ValidateHostname(string hostname)
@@ -33,12 +112,21 @@ namespace WinUIApp
             if (string.IsNullOrWhiteSpace(hostname))
                 return false;
 
+            // Allow "this-pc" as a special case
+            if (hostname.Equals("this-pc", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Allow Windows computer names (alphanumeric with hyphens, e.g., olw10cl480)
+            var computerNameRegex = new Regex(@"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$");
+
             // Regex for valid hostname/IP
             var hostnameRegex = new Regex(@"^(localhost|[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$");
             var ipRegex = new Regex(@"^(\d{1,3}\.){3}\d{1,3}$");
 
-            return hostnameRegex.IsMatch(hostname) || ipRegex.IsMatch(hostname);
+            return computerNameRegex.IsMatch(hostname) || hostnameRegex.IsMatch(hostname) || ipRegex.IsMatch(hostname);
         }
+
+        #region Command Click Handlers
 
         private void PingButton_Click(object sender, RoutedEventArgs e)
         {
@@ -48,6 +136,7 @@ namespace WinUIApp
                 ShowMessage("Error", "Please enter a valid hostname or IP address.");
                 return;
             }
+
             ExecuteCommand($"ping -n 4 {EscapeShellArgument(hostname)}");
         }
 
@@ -59,24 +148,27 @@ namespace WinUIApp
                 ShowMessage("Error", "Please enter a valid hostname or IP address.");
                 return;
             }
-            ExecuteCommand($"tracert {EscapeShellArgument(hostname)}");
+
+            ExecuteCommandRealtime($"tracert {EscapeShellArgument(hostname)}");
         }
 
-        private void QuserButton_Click(object sender, RoutedEventArgs e)
+        private async void ExecuteCommandRealtime(string command)
         {
-            ExecuteCommand("quser");
-        }
+            if (isCommandRunning)
+            {
+                ShowMessage("Warning", "A command is already running. Please wait for it to complete.");
+                return;
+            }
 
-        private string EscapeShellArgument(string arg)
-        {
-            // Basic shell argument escaping to prevent command injection
-            return arg.Replace("&", "").Replace("|", "").Replace(";", "").Replace("(", "").Replace(")", "");
-        }
-
-        private async void ExecuteCommand(string command)
-        {
             try
             {
+                isCommandRunning = true;
+                currentCommand = command;
+                StatusTextBlock.Text = $"Running: {command}";
+
+                // Clear previous results
+                ResultsTextBox.Text = string.Empty;
+
                 ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", "/c " + command)
                 {
                     RedirectStandardOutput = true,
@@ -89,28 +181,222 @@ namespace WinUIApp
                 {
                     proc.Start();
 
-                    string output = await proc.StandardOutput.ReadToEndAsync();
-                    string error = await proc.StandardError.ReadToEndAsync();
+                    // Set up event handlers for real-time output
+                    StringBuilder outputBuilder = new StringBuilder();
 
-                    proc.WaitForExit();
+                    proc.OutputDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            _ = this.DispatcherQueue.TryEnqueue(() =>
+                            {
+                                outputBuilder.AppendLine(e.Data);
+                                ResultsTextBox.Text = outputBuilder.ToString();
+                                ResultsTextBox.SelectionStart = ResultsTextBox.Text.Length;
+                                ResultsTextBox.SelectionLength = 0;
+                            });
+                        }
+                    };
 
-                    // Display output or error
-                    string displayText = !string.IsNullOrWhiteSpace(output) ? output :
-                                         !string.IsNullOrWhiteSpace(error) ? "Error: " + error :
-                                         "Command executed with no output.";
+                    proc.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            _ = this.DispatcherQueue.TryEnqueue(() =>
+                            {
+                                outputBuilder.AppendLine("Error: " + e.Data);
+                                ResultsTextBox.Text = outputBuilder.ToString();
+                            });
+                        }
+                    };
 
-                    ShowMessage("Command Output", displayText);
+                    // Begin asynchronous reading
+                    proc.BeginOutputReadLine();
+                    proc.BeginErrorReadLine();
+
+                    // Wait for the process to exit
+                    await Task.Run(() => proc.WaitForExit());
+
+                    // Update status
+                    _ = this.DispatcherQueue.TryEnqueue(() =>
+                    {
+                        StatusTextBlock.Text = $"Completed: {command}";
+                    });
                 }
             }
             catch (Exception ex)
             {
-                ShowMessage("Error", $"Error executing command:\n{ex.Message}");
+                ResultsTextBox.Text = $"Error executing command:\n{ex.Message}";
+                StatusTextBlock.Text = "Error executing command";
             }
+            finally
+            {
+                isCommandRunning = false;
+            }
+        }
+
+        private void QuserButton_Click(object sender, RoutedEventArgs e)
+        {
+            ExecuteCommand("quser");
+        }
+
+        private void IpconfigButton_Click(object sender, RoutedEventArgs e)
+        {
+            ExecuteCommand("ipconfig /all");
+        }
+
+        private void NslookupButton_Click(object sender, RoutedEventArgs e)
+        {
+            string hostname = GetSelectedHostname();
+            if (string.IsNullOrEmpty(hostname) || !ValidateHostname(hostname))
+            {
+                ShowMessage("Error", "Please enter a valid hostname or IP address.");
+                return;
+            }
+
+            ExecuteCommand($"nslookup {EscapeShellArgument(hostname)}");
+        }
+
+        private void NetstatButton_Click(object sender, RoutedEventArgs e)
+        {
+            ExecuteCommand("netstat -an");
+        }
+
+        private void SystemInfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            string hostname = GetSelectedHostname();
+
+            if (string.IsNullOrEmpty(hostname) || !ValidateHostname(hostname))
+            {
+                ShowMessage("Error", "Please enter a valid hostname or IP address.");
+                return;
+            }
+
+            // For local machine
+            if (hostname.Equals("this-pc", StringComparison.OrdinalIgnoreCase) ||
+                hostname.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                hostname.Equals("127.0.0.1"))
+            {
+                ExecuteCommand("systeminfo");
+            }
+            else
+            {
+                // For remote machine
+                ExecuteCommand($"systeminfo /S {EscapeShellArgument(hostname)}");
+            }
+        }
+
+        private void TasklistButton_Click(object sender, RoutedEventArgs e)
+        {
+            string hostname = GetSelectedHostname();
+
+            if (string.IsNullOrEmpty(hostname) || !ValidateHostname(hostname))
+            {
+                ShowMessage("Error", "Please enter a valid hostname or IP address.");
+                return;
+            }
+
+            // For local machine
+            if (hostname.Equals("this-pc", StringComparison.OrdinalIgnoreCase) ||
+                hostname.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                hostname.Equals("127.0.0.1"))
+            {
+                ExecuteCommand("tasklist");
+            }
+            else
+            {
+                // For remote machine
+                ExecuteCommand($"tasklist /S {EscapeShellArgument(hostname)}");
+            }
+        }
+
+        #endregion
+
+        #region UI Action Handlers
+
+        private void AddToFavoritesButton_Click(object sender, RoutedEventArgs e)
+        {
+            string hostname = GetSelectedHostname();
+            if (string.IsNullOrEmpty(hostname) || !ValidateHostname(hostname))
+            {
+                ShowMessage("Error", "Please enter a valid hostname to add to favorites.");
+                return;
+            }
+
+            if (!favoriteHostnames.Contains(hostname))
+            {
+                favoriteHostnames.Add(hostname);
+                SaveFavorites();
+                UpdateHostnameSuggestions();
+                StatusTextBlock.Text = $"Added {hostname} to favorites";
+            }
+            else
+            {
+                StatusTextBlock.Text = $"{hostname} is already in favorites";
+            }
+        }
+
+        private void CopyOutputButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(ResultsTextBox.Text))
+            {
+                StatusTextBlock.Text = "No output to copy";
+                return;
+            }
+
+            DataPackage dataPackage = new DataPackage();
+            dataPackage.SetText(ResultsTextBox.Text);
+            Clipboard.SetContent(dataPackage);
+
+            StatusTextBlock.Text = "Output copied to clipboard";
+        }
+
+        private async void SaveOutputButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(ResultsTextBox.Text))
+            {
+                StatusTextBlock.Text = "No output to save";
+                return;
+            }
+
+            try
+            {
+                FileSavePicker savePicker = new FileSavePicker();
+                savePicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+                savePicker.FileTypeChoices.Add("Text Files", new List<string>() { ".txt" });
+
+                // Format a default filename based on the command and hostname
+                string defaultFilename = $"{currentCommand.Split(' ')[0]}_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+                savePicker.SuggestedFileName = defaultFilename;
+
+                // Initialize the file picker with the window handle
+                // Get the window handle from the current window
+                var window = App.GetMainWindow();
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hwnd);
+
+                StorageFile file = await savePicker.PickSaveFileAsync();
+                if (file != null)
+                {
+                    await FileIO.WriteTextAsync(file, ResultsTextBox.Text);
+                    StatusTextBlock.Text = $"Output saved to {file.Name}";
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowMessage("Error", $"Failed to save output: {ex.Message}");
+            }
+        }
+
+        private void ClearOutputButton_Click(object sender, RoutedEventArgs e)
+        {
+            ResultsTextBox.Text = string.Empty;
+            StatusTextBlock.Text = "Output cleared";
         }
 
         private void ThemeToggleButton_Click(object sender, RoutedEventArgs e)
         {
-            if (this.ActualTheme == ElementTheme.Light)
+            if (ThemeToggleButton.IsChecked == true)
             {
                 this.RequestedTheme = ElementTheme.Dark;
             }
@@ -119,6 +405,106 @@ namespace WinUIApp
                 this.RequestedTheme = ElementTheme.Light;
             }
         }
+
+        private void HelpButton_Click(object sender, RoutedEventArgs e)
+        {
+            string helpText =
+                "Network Tool Commands Help:\n\n" +
+                "• Ping - Tests connectivity to a host\n" +
+                "• Tracert - Traces the route to a host\n" +
+                "• Quser - Displays logged-on users\n" +
+                "• Ipconfig - Displays network configuration\n" +
+                "• Nslookup - Queries DNS records\n" +
+                "• Netstat - Shows network connections\n" +
+                "• System Info - Displays system information\n" +
+                "• Task List - Shows running processes\n\n" +
+                "Enter a hostname or IP address in the text box for destination-specific commands.";
+
+            ShowMessage("Help", helpText);
+        }
+
+        private void LogoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Navigate back to login page
+            this.Frame.Navigate(typeof(LoginPage));
+        }
+
+        #endregion
+
+        #region Command Execution
+
+        private string EscapeShellArgument(string arg)
+        {
+            // Basic shell argument escaping to prevent command injection
+            return arg.Replace("&", "").Replace("|", "").Replace(";", "")
+                     .Replace("(", "").Replace(")", "").Replace("<", "").Replace(">", "");
+        }
+
+        private async void ExecuteCommand(string command)
+        {
+            if (isCommandRunning)
+            {
+                ShowMessage("Warning", "A command is already running. Please wait for it to complete.");
+                return;
+            }
+
+            try
+            {
+                isCommandRunning = true;
+                currentCommand = command;
+                StatusTextBlock.Text = $"Running: {command}";
+
+                // Clear previous results
+                ResultsTextBox.Text = string.Empty;
+
+                ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", "/c " + command)
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process proc = new Process { StartInfo = psi })
+                {
+                    proc.Start();
+
+                    // Start reading output asynchronously
+                    var outputTask = proc.StandardOutput.ReadToEndAsync();
+                    var errorTask = proc.StandardError.ReadToEndAsync();
+
+                    // Display output in chunks as it becomes available
+                    while (!proc.HasExited || !outputTask.IsCompleted || !errorTask.IsCompleted)
+                    {
+                        await Task.Delay(100); // Small delay to avoid UI freezing
+                    }
+
+                    string output = await outputTask;
+                    string error = await errorTask;
+
+                    // Display output or error
+                    string displayText = !string.IsNullOrWhiteSpace(output) ? output :
+                                         !string.IsNullOrWhiteSpace(error) ? "Error: " + error :
+                                         "Command executed with no output.";
+
+                    ResultsTextBox.Text = displayText;
+                    StatusTextBlock.Text = $"Completed: {command}";
+                }
+            }
+            catch (Exception ex)
+            {
+                ResultsTextBox.Text = $"Error executing command:\n{ex.Message}";
+                StatusTextBlock.Text = "Error executing command";
+            }
+            finally
+            {
+                isCommandRunning = false;
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods
 
         private async void ShowMessage(string title, string content)
         {
@@ -132,18 +518,42 @@ namespace WinUIApp
             await dialog.ShowAsync();
         }
 
+        #endregion
+
+        #region AutoSuggestBox Event Handlers
+
         private void HostnameAutoSuggestBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
         {
-            // Optional: Add custom query submission logic if needed
+            // Auto-submit to run ping on query submission
+            if (!string.IsNullOrEmpty(args.QueryText) && ValidateHostname(args.QueryText))
+            {
+                PingButton_Click(sender, null);
+            }
         }
 
         private void HostnameAutoSuggestBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
         {
             if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
             {
-                var suggestions = dummyHostnames.FindAll(h => h.StartsWith(sender.Text, StringComparison.OrdinalIgnoreCase));
-                sender.ItemsSource = suggestions;
+                var allSuggestions = new List<string>();
+                allSuggestions.AddRange(favoriteHostnames);
+
+                foreach (var hostname in dummyHostnames)
+                {
+                    if (!allSuggestions.Contains(hostname))
+                    {
+                        allSuggestions.Add(hostname);
+                    }
+                }
+
+                var filteredSuggestions = allSuggestions.FindAll(h =>
+                    h.StartsWith(sender.Text, StringComparison.OrdinalIgnoreCase) ||
+                    h.Contains(sender.Text, StringComparison.OrdinalIgnoreCase));
+
+                sender.ItemsSource = filteredSuggestions;
             }
         }
+
+        #endregion
     }
 }

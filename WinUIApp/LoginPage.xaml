@@ -7,12 +7,74 @@
     Background="Transparent">
 
     <Grid>
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="300" Spacing="20">
-            <TextBlock Text="Login" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
-            <TextBox x:Name="UsernameTextBox" PlaceholderText="Username"/>
-            <PasswordBox x:Name="PasswordBox" PlaceholderText="Password"/>
-            <CheckBox x:Name="RememberMeCheckBox" Content="Remember Me" />
-            <Button Content="Login" Click="LoginButton_Click"/>
+        <StackPanel HorizontalAlignment="Center" 
+                    VerticalAlignment="Center" 
+                    Width="350" 
+                    Spacing="24">
+
+            <!-- App Logo/Title -->
+            <StackPanel HorizontalAlignment="Center" Spacing="8">
+                <FontIcon Glyph="&#xE167;" 
+                          FontSize="48" 
+                          FontFamily="Segoe Fluent Icons" 
+                          HorizontalAlignment="Center"
+                          Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+
+                <TextBlock Text="Network Tools" 
+                           FontSize="28" 
+                           FontWeight="SemiBold" 
+                           HorizontalAlignment="Center"/>
+
+                <TextBlock Text="Login to access system utilities" 
+                           FontSize="14" 
+                           Opacity="0.8" 
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Login Card -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefault}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="24">
+                <StackPanel Spacing="16">
+                    <!-- Username -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Username" FontWeight="SemiBold"/>
+                        <TextBox x:Name="UsernameTextBox" 
+                                 PlaceholderText="Enter username"
+                                 KeyDown="LoginField_KeyDown"/>
+                    </StackPanel>
+
+                    <!-- Password -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Password" FontWeight="SemiBold"/>
+                        <PasswordBox x:Name="PasswordBox" 
+                                     PlaceholderText="Enter password"
+                                     KeyDown="LoginField_KeyDown"/>
+                    </StackPanel>
+
+                    <!-- Remember Me -->
+                    <CheckBox x:Name="RememberMeCheckBox" 
+                              Content="Remember Me" 
+                              Margin="0,8,0,0"/>
+
+                    <!-- Login Button -->
+                    <Button Content="Sign In" 
+                            Click="LoginButton_Click"
+                            HorizontalAlignment="Stretch"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Height="36"
+                            Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Version Info -->
+            <TextBlock Text="v1.0.5" 
+                       HorizontalAlignment="Center" 
+                       Opacity="0.6" 
+                       FontSize="12"
+                       Margin="0,8,0,0"/>
         </StackPanel>
     </Grid>
 </Page>

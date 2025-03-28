@@ -5,6 +5,8 @@ namespace WinUIApp
 {
     public partial class App : Application
     {
+        private static Window m_window;
+
         public App()
         {
             this.InitializeComponent();
@@ -21,6 +23,12 @@ namespace WinUIApp
             m_window.Activate();
         }
 
-        private Window m_window;
+        /// <summary>
+        /// Gets the main application window
+        /// </summary>
+        public static Window GetMainWindow()
+        {
+            return m_window;
+        }
     }
 }
