@@ -1,0 +1,211 @@
+<Page
+    x:Class="WinUIApp.ProfilePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:local="using:WinUIApp"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="Transparent">
+
+    <Grid Padding="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Profile Header -->
+        <StackPanel Grid.Row="0" Spacing="20">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <!-- Profile Picture -->
+                <PersonPicture x:Name="ProfilePicture"
+                              Width="120"
+                              Height="120"/>
+
+                <!-- User Info -->
+                <StackPanel VerticalAlignment="Center" Spacing="4">
+                    <TextBox x:Name="DisplayNameTextBox"
+                             Header="Display Name"
+                             PlaceholderText="Enter your name"
+                             Text="Admin User"
+                             Width="250" />
+
+                    <TextBox x:Name="EmailTextBox"
+                             Header="Email"
+                             PlaceholderText="Enter your email"
+                             Width="250" />
+
+                    <Button Content="Update Profile"
+                            Click="UpdateProfileButton_Click"
+                            Margin="0,16,0,0"/>
+                </StackPanel>
+
+                <!-- Actions -->
+                <StackPanel VerticalAlignment="Top" Margin="20,0,0,0">
+                    <Button x:Name="ChangePhotoButton"
+                            Content="Change Photo"
+                            Click="ChangePhotoButton_Click"
+                            Margin="0,0,0,8"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Divider -->
+            <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefault}" Margin="0,8"/>
+        </StackPanel>
+
+        <!-- Profile Content -->
+        <Pivot Grid.Row="1">
+            <!-- Account Settings Tab -->
+            <PivotItem Header="Account Settings">
+                <ScrollViewer>
+                    <StackPanel Spacing="16">
+                        <!-- Password Section -->
+                        <TextBlock Text="Change Password"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,8"/>
+
+                        <PasswordBox x:Name="CurrentPasswordBox"
+                                     Header="Current Password"
+                                     PlaceholderText="Enter current password"
+                                     Width="300"
+                                     HorizontalAlignment="Left"/>
+
+                        <PasswordBox x:Name="NewPasswordBox"
+                                     Header="New Password"
+                                     PlaceholderText="Enter new password"
+                                     Width="300"
+                                     HorizontalAlignment="Left"/>
+
+                        <PasswordBox x:Name="ConfirmPasswordBox"
+                                     Header="Confirm New Password"
+                                     PlaceholderText="Confirm new password"
+                                     Width="300"
+                                     HorizontalAlignment="Left"/>
+
+                        <Button Content="Update Password"
+                                Click="UpdatePasswordButton_Click"/>
+
+                        <!-- Remember Login Settings -->
+                        <TextBlock Text="Login Settings"
+                                   FontWeight="SemiBold"
+                                   Margin="0,16,0,8"/>
+
+                        <ToggleSwitch x:Name="RememberLoginToggle"
+                                      Header="Remember Login"
+                                      OnContent="Enabled"
+                                      OffContent="Disabled"
+                                      IsOn="True"
+                                      Toggled="RememberLoginToggle_Toggled"/>
+
+                        <TextBlock Text="When enabled, your login will be remembered on this device."
+                                   TextWrapping="Wrap"
+                                   Opacity="0.7"
+                                   MaxWidth="400"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+
+            <!-- Preferences Tab -->
+            <PivotItem Header="Preferences">
+                <ScrollViewer>
+                    <StackPanel Spacing="16">
+                        <!-- Dashboard Preferences -->
+                        <TextBlock Text="Dashboard Preferences"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,8"/>
+
+                        <ToggleSwitch x:Name="ShowSystemInfoToggle"
+                                      Header="System Info Panel"
+                                      OnContent="Visible"
+                                      OffContent="Hidden"
+                                      IsOn="True"
+                                      Toggled="DashboardPrefToggle_Toggled"/>
+
+                        <ToggleSwitch x:Name="ShowNetworkStatusToggle"
+                                      Header="Network Status Panel"
+                                      OnContent="Visible"
+                                      OffContent="Hidden"
+                                      IsOn="True"
+                                      Toggled="DashboardPrefToggle_Toggled"/>
+
+                        <ToggleSwitch x:Name="ShowCommandHistoryToggle"
+                                      Header="Command History Panel"
+                                      OnContent="Visible"
+                                      OffContent="Hidden"
+                                      IsOn="True"
+                                      Toggled="DashboardPrefToggle_Toggled"/>
+
+                        <ToggleSwitch x:Name="ShowFavoritesToggle"
+                                      Header="Favorites Panel"
+                                      OnContent="Visible"
+                                      OffContent="Hidden"
+                                      IsOn="True"
+                                      Toggled="DashboardPrefToggle_Toggled"/>
+
+                        <!-- Command Preferences -->
+                        <TextBlock Text="Command Preferences"
+                                   FontWeight="SemiBold"
+                                   Margin="0,16,0,8"/>
+
+                        <ComboBox x:Name="DefaultCommandComboBox"
+                                  Header="Default Quick Command"
+                                  SelectedIndex="0"
+                                  Width="250"
+                                  SelectionChanged="DefaultCommandComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Ping" Tag="ping google.com"/>
+                            <ComboBoxItem Content="System Info" Tag="systeminfo"/>
+                            <ComboBoxItem Content="IP Config" Tag="ipconfig /all"/>
+                            <ComboBoxItem Content="Trace Route" Tag="tracert google.com"/>
+                        </ComboBox>
+
+                        <Button Content="Save Preferences"
+                                Click="SavePreferencesButton_Click"
+                                Margin="0,16,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+
+            <!-- Data Management Tab -->
+            <PivotItem Header="Data Management">
+                <ScrollViewer>
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Clear Application Data"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,8"/>
+
+                        <Button Content="Clear Command History"
+                                Click="ClearCommandHistoryButton_Click"/>
+
+                        <Button Content="Clear Favorite Hosts"
+                                Click="ClearFavoritesButton_Click"/>
+
+                        <Button Content="Reset All Preferences"
+                                Click="ResetPreferencesButton_Click"/>
+
+                        <TextBlock Text="Export/Import Settings"
+                                   FontWeight="SemiBold"
+                                   Margin="0,16,0,8"/>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="Export Settings"
+                                    Click="ExportSettingsButton_Click"/>
+
+                            <Button Content="Import Settings"
+                                    Click="ImportSettingsButton_Click"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Danger Zone"
+                                   FontWeight="SemiBold"
+                                   Foreground="Red"
+                                   Margin="0,24,0,8"/>
+
+                        <Button Content="Delete Account"
+                                Background="Red"
+                                Foreground="White"
+                                Click="DeleteAccountButton_Click"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</Page>

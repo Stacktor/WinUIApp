@@ -32,6 +32,51 @@
 		</Content>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Remove="DashboardPage.xaml" />
+	  <None Remove="HistoryPage.xaml" />
+	  <None Remove="MainHub.xaml" />
+	  <None Remove="ProfilePage.xaml" />
+	  <None Remove="SettingsPage.xaml" />
+	  <None Remove="SystemToolsPage.xaml" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Page Update="HistoryPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Page Update="SystemToolsPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Page Update="ProfilePage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Page Update="SettingsPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Page Update="DashboardPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Page Update="MainHub.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	</ItemGroup>
+
 	<!-- Xaml Compilation -->
 	<ItemGroup>
 		<Page Update="MainPage.xaml">

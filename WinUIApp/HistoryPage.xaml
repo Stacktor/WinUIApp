@@ -1,0 +1,234 @@
+<Page
+    x:Class="WinUIApp.HistoryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:local="using:WinUIApp"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="Transparent">
+
+    <Grid Padding="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- History Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Command History" 
+                       FontSize="24" 
+                       FontWeight="SemiBold"/>
+
+            <StackPanel Grid.Column="1" 
+                        Orientation="Horizontal" 
+                        Spacing="8">
+                <ComboBox x:Name="FilterComboBox" 
+                          Width="200"
+                          SelectionChanged="FilterComboBox_SelectionChanged">
+                    <ComboBoxItem Content="All Commands" IsSelected="True"/>
+                    <ComboBoxItem Content="Network Commands"/>
+                    <ComboBoxItem Content="System Commands"/>
+                    <ComboBoxItem Content="Today Only"/>
+                    <ComboBoxItem Content="This Week"/>
+                </ComboBox>
+
+                <Button Content="Clear History" 
+                        Click="ClearHistoryButton_Click"/>
+
+                <Button Content="Export History" 
+                        Click="ExportHistoryButton_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- History Content -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- History List -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefault}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header Row -->
+                    <Grid Grid.Row="0" 
+                          Padding="12,0,12,8" 
+                          BorderBrush="{ThemeResource DividerStrokeColorDefault}" 
+                          BorderThickness="0,0,0,1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="" Width="32"/>
+                        <TextBlock Grid.Column="1" Text="Command" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="2" Text="Target" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="3" Text="Timestamp" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="4" Text="Actions" FontWeight="SemiBold"/>
+                    </Grid>
+
+                    <!-- History Items -->
+                    <ListView Grid.Row="1" 
+                              x:Name="HistoryListView"
+                              SelectionMode="Single"
+                              IsItemClickEnabled="True"
+                              ItemClick="HistoryListView_ItemClick">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,2"/>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="12,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Status Icon -->
+                                    <FontIcon Grid.Column="0" 
+                                              Glyph="{Binding StatusIcon}" 
+                                              Foreground="{Binding StatusColor}"
+                                              FontSize="16"/>
+
+                                    <!-- Command -->
+                                    <TextBlock Grid.Column="1" 
+                                               Text="{Binding Command}" 
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTipService.ToolTip="{Binding Command}"/>
+
+                                    <!-- Target -->
+                                    <TextBlock Grid.Column="2" 
+                                               Text="{Binding Target}"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                    <!-- Timestamp -->
+                                    <TextBlock Grid.Column="3" 
+                                               Text="{Binding Timestamp}"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                    <!-- Actions -->
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4">
+                                        <Button Content="Run Again"
+                                                Click="RunAgainButton_Click"
+                                                Tag="{Binding}"/>
+
+                                        <Button Content="Delete"
+                                                Click="DeleteItemButton_Click"
+                                                Tag="{Binding Id}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </Border>
+
+            <!-- Details Panel -->
+            <Border Grid.Column="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefault}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="16,0,0,0"
+                    Width="400">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Details Header -->
+                    <TextBlock Grid.Row="0" 
+                               Text="Command Details" 
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,12"/>
+
+                    <!-- Details Content -->
+                    <ScrollViewer Grid.Row="1">
+                        <StackPanel>
+                            <!-- Command -->
+                            <TextBlock Text="Command:" FontWeight="SemiBold"/>
+                            <TextBox x:Name="DetailCommandTextBox"
+                                     IsReadOnly="True"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     Margin="0,0,0,12"/>
+
+                            <!-- Target -->
+                            <TextBlock Text="Target System:" FontWeight="SemiBold"/>
+                            <TextBox x:Name="DetailTargetTextBox"
+                                     IsReadOnly="True"
+                                     Margin="0,0,0,12"/>
+
+                            <!-- Timestamp -->
+                            <TextBlock Text="Execution Time:" FontWeight="SemiBold"/>
+                            <TextBox x:Name="DetailTimestampTextBox"
+                                     IsReadOnly="True"
+                                     Margin="0,0,0,12"/>
+
+                            <!-- Duration -->
+                            <TextBlock Text="Duration:" FontWeight="SemiBold"/>
+                            <TextBox x:Name="DetailDurationTextBox"
+                                     IsReadOnly="True"
+                                     Margin="0,0,0,12"/>
+
+                            <!-- Status -->
+                            <TextBlock Text="Status:" FontWeight="SemiBold"/>
+                            <TextBox x:Name="DetailStatusTextBox"
+                                     IsReadOnly="True"
+                                     Margin="0,0,0,12"/>
+
+                            <!-- Output Preview -->
+                            <TextBlock Text="Output Preview:" FontWeight="SemiBold"/>
+                            <TextBox x:Name="DetailOutputTextBox"
+                                     IsReadOnly="True"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     MinHeight="120"
+                                     Margin="0,0,0,12"/>
+
+                            <!-- Action Buttons -->
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="ViewFullOutputButton"
+                                        Content="View Full Output"
+                                        Click="ViewFullOutputButton_Click"
+                                        IsEnabled="False"/>
+
+                                <Button x:Name="RunDetailCommandButton"
+                                        Content="Run Command"
+                                        Click="RunDetailCommandButton_Click"
+                                        IsEnabled="False"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

@@ -18,6 +18,8 @@ namespace WinUIApp
 
             Frame rootFrame = new Frame();
             m_window.Content = rootFrame;
+
+            // Navigate to LoginPage first (user will then navigate to MainHub after login)
             rootFrame.Navigate(typeof(LoginPage));
 
             m_window.Activate();

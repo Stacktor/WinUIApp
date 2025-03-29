@@ -85,8 +85,8 @@ namespace WinUIApp
                     ClearSavedCredentials();
                 }
 
-                // Navigate to MainPage
-                this.Frame.Navigate(typeof(MainPage));
+                // Navigate to MainHub instead of MainPage
+                this.Frame.Navigate(typeof(MainHub));
             }
             else
             {
