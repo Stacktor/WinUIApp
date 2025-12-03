@@ -69,9 +69,9 @@ namespace WinUIApp
                 {
                     UserProfilePicture = new BitmapImage(new Uri("ms-appx:///Assets/StoreLogo.png"));
                 }
-                catch
+                catch (Exception picEx)
                 {
-                    // If the profile picture can't be loaded, just continue without it
+                    System.Diagnostics.Debug.WriteLine($"Could not load profile picture: {picEx.Message}");
                 }
             }
             catch (Exception ex)

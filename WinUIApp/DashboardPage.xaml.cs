@@ -5,10 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.System;
+using WinUIApp.Utilities;
 
 namespace WinUIApp
 {
@@ -28,9 +28,6 @@ namespace WinUIApp
         // Observable collections for lists
         private ObservableCollection<CommandHistoryItem> RecentCommands { get; set; } = new ObservableCollection<CommandHistoryItem>();
         private ObservableCollection<string> FavoriteHosts { get; set; } = new ObservableCollection<string>();
-
-        // HttpClient for network operations
-        private readonly HttpClient httpClient = new HttpClient();
 
         // Flag to track if a command is running
         private bool isCommandRunning = false;
@@ -245,17 +242,7 @@ namespace WinUIApp
 
         private async Task<bool> CheckInternetConnectivityAsync()
         {
-            try
-            {
-                using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(5);
-                var response = await client.GetAsync("https://www.google.com");
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
+            return await NetworkHelper.CheckInternetConnectivityAsync();
         }
 
         private async Task GetNetworkConfigurationAsync()
@@ -276,9 +263,9 @@ namespace WinUIApp
                     proc.WaitForExit();
 
                     // Extract default gateway
-                    string gatewayInfo = ExtractNetworkInfo(output, "Default Gateway", ":");
+                    string gatewayInfo = NetworkHelper.ExtractNetworkInfo(output, "Default Gateway");
                     // Extract DNS servers
-                    string dnsInfo = ExtractNetworkInfo(output, "DNS Servers", ":");
+                    string dnsInfo = NetworkHelper.ExtractNetworkInfo(output, "DNS Servers");
 
                     await UpdateUIAsync(() =>
                     {
@@ -299,53 +286,13 @@ namespace WinUIApp
             }
         }
 
-        private string ExtractNetworkInfo(string input, string searchText, string delimiter)
-        {
-            try
-            {
-                // Find the line containing the search text
-                var lines = input.Split('\n');
-                foreach (var line in lines)
-                {
-                    if (line.Contains(searchText))
-                    {
-                        // Extract the value after the delimiter
-                        int delimiterIndex = line.IndexOf(delimiter);
-                        if (delimiterIndex != -1 && delimiterIndex < line.Length - 1)
-                        {
-                            return line.Substring(delimiterIndex + 1).Trim();
-                        }
-                    }
-                }
-                return string.Empty;
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }
-
         private async Task GetPublicIpAddressAsync()
         {
-            try
+            string ipAddress = await NetworkHelper.GetPublicIpAddressAsync();
+            await UpdateUIAsync(() =>
             {
-                // Use a public API to get the external IP address
-                string response = await httpClient.GetStringAsync("https://api.ipify.org");
-
-                await UpdateUIAsync(() =>
-                {
-                    PublicIpTextBlock.Text = response.Trim();
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting public IP: {ex.Message}");
-
-                await UpdateUIAsync(() =>
-                {
-                    PublicIpTextBlock.Text = "Could not determine";
-                });
-            }
+                PublicIpTextBlock.Text = ipAddress;
+            });
         }
 
         #region Button Click Event Handlers

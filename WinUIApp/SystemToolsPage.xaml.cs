@@ -3,14 +3,13 @@ using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
+using WinUIApp.Utilities;
 
 namespace WinUIApp
 {
@@ -66,7 +65,7 @@ namespace WinUIApp
         {
             ResultTitleTextBlock.Text = commandName;
 
-            if (IsLocalSystem(currentTarget))
+            if (CommandExecutor.IsLocalSystem(currentTarget))
             {
                 ResultTargetTextBlock.Text = "(Local System)";
             }
@@ -108,13 +107,13 @@ namespace WinUIApp
         {
             string target = TargetSystemBox.Text;
 
-            if (IsLocalSystem(target))
+            if (CommandExecutor.IsLocalSystem(target))
             {
                 ExecuteCommandInternal("systeminfo", "System Information");
             }
             else
             {
-                ExecuteCommandInternal($"systeminfo /S {EscapeShellArgument(target)}", "System Information");
+                ExecuteCommandInternal($"systeminfo /S {CommandExecutor.EscapeShellArgument(target)}", "System Information");
             }
         }
 
@@ -122,14 +121,14 @@ namespace WinUIApp
         {
             string target = TargetSystemBox.Text;
 
-            if (IsLocalSystem(target))
+            if (CommandExecutor.IsLocalSystem(target))
             {
                 ExecuteCommandInternal("ver", "System Version");
             }
             else
             {
                 // For remote systems, use a different approach
-                ExecuteCommandInternal($"systeminfo /S {EscapeShellArgument(target)} | findstr /B /C:\"OS Name\" /C:\"OS Version\"", "System Version");
+                ExecuteCommandInternal($"systeminfo /S {CommandExecutor.EscapeShellArgument(target)} | findstr /B /C:\"OS Name\" /C:\"OS Version\"", "System Version");
             }
         }
 
@@ -137,7 +136,7 @@ namespace WinUIApp
         {
             string target = TargetSystemBox.Text;
 
-            if (IsLocalSystem(target))
+            if (CommandExecutor.IsLocalSystem(target))
             {
                 // Get system boot time using wmic
                 ExecuteCommandInternal("wmic os get lastbootuptime", "System Uptime");
@@ -145,7 +144,7 @@ namespace WinUIApp
             else
             {
                 // For remote systems
-                ExecuteCommandInternal($"wmic /node:\"{EscapeShellArgument(target)}\" os get lastbootuptime", "System Uptime");
+                ExecuteCommandInternal($"wmic /node:\"{CommandExecutor.EscapeShellArgument(target)}\" os get lastbootuptime", "System Uptime");
             }
         }
 
@@ -153,13 +152,13 @@ namespace WinUIApp
         {
             string target = TargetSystemBox.Text;
 
-            if (IsLocalSystem(target))
+            if (CommandExecutor.IsLocalSystem(target))
             {
                 ExecuteCommandInternal("tasklist", "Task List");
             }
             else
             {
-                ExecuteCommandInternal($"tasklist /S {EscapeShellArgument(target)}", "Task List");
+                ExecuteCommandInternal($"tasklist /S {CommandExecutor.EscapeShellArgument(target)}", "Task List");
             }
         }
 
@@ -167,13 +166,13 @@ namespace WinUIApp
         {
             string target = TargetSystemBox.Text;
 
-            if (IsLocalSystem(target))
+            if (CommandExecutor.IsLocalSystem(target))
             {
                 ExecuteCommandInternal("sc query state= all", "Services");
             }
             else
             {
-                ExecuteCommandInternal($"sc \\\\{EscapeShellArgument(target)} query state= all", "Services");
+                ExecuteCommandInternal($"sc \\\\{CommandExecutor.EscapeShellArgument(target)} query state= all", "Services");
             }
         }
 
@@ -181,13 +180,13 @@ namespace WinUIApp
         {
             string target = TargetSystemBox.Text;
 
-            if (IsLocalSystem(target))
+            if (CommandExecutor.IsLocalSystem(target))
             {
                 ExecuteCommandInternal("sc query state= running", "Running Services");
             }
             else
             {
-                ExecuteCommandInternal($"sc \\\\{EscapeShellArgument(target)} query state= running", "Running Services");
+                ExecuteCommandInternal($"sc \\\\{CommandExecutor.EscapeShellArgument(target)} query state= running", "Running Services");
             }
         }
 
@@ -205,7 +204,7 @@ namespace WinUIApp
         {
             string target = TargetSystemBox.Text;
 
-            if (IsLocalSystem(target))
+            if (CommandExecutor.IsLocalSystem(target))
             {
                 ExecuteCommandInternal("net user", "Local Users");
             }
@@ -219,13 +218,13 @@ namespace WinUIApp
         {
             string target = TargetSystemBox.Text;
 
-            if (IsLocalSystem(target))
+            if (CommandExecutor.IsLocalSystem(target))
             {
                 ExecuteCommandInternal("quser", "Active Sessions");
             }
             else
             {
-                ExecuteCommandInternal($"quser /server:{EscapeShellArgument(target)}", "Active Sessions");
+                ExecuteCommandInternal($"quser /server:{CommandExecutor.EscapeShellArgument(target)}", "Active Sessions");
             }
         }
 
@@ -443,30 +442,6 @@ namespace WinUIApp
             {
                 isCommandRunning = false;
             }
-        }
-
-        private bool IsLocalSystem(string target)
-        {
-            return string.IsNullOrEmpty(target) ||
-                   target.Equals("this-pc", StringComparison.OrdinalIgnoreCase) ||
-                   target.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
-                   target.Equals("127.0.0.1");
-        }
-
-        private string EscapeShellArgument(string arg)
-        {
-            if (string.IsNullOrEmpty(arg))
-                return string.Empty;
-
-            // Basic shell argument escaping to prevent command injection
-            return arg.Replace("&", "")
-                     .Replace("|", "")
-                     .Replace(";", "")
-                     .Replace("(", "")
-                     .Replace(")", "")
-                     .Replace("<", "")
-                     .Replace(">", "")
-                     .Replace("\"", "");
         }
 
         #endregion

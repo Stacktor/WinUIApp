@@ -2,8 +2,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using System;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace WinUIApp
@@ -131,15 +129,6 @@ namespace WinUIApp
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error clearing credentials: {ex.Message}");
-            }
-        }
-
-        private string HashString(string input)
-        {
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
-                return Convert.ToBase64String(bytes);
             }
         }
 

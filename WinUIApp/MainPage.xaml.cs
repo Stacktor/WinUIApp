@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -11,6 +10,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
+using WinUIApp.Utilities;
 
 namespace WinUIApp
 {
@@ -109,22 +109,7 @@ namespace WinUIApp
 
         private bool ValidateHostname(string hostname)
         {
-            // Basic hostname validation
-            if (string.IsNullOrWhiteSpace(hostname))
-                return false;
-
-            // Allow "this-pc" as a special case
-            if (hostname.Equals("this-pc", StringComparison.OrdinalIgnoreCase))
-                return true;
-
-            // Allow Windows computer names (alphanumeric with hyphens, e.g., olw10cl480)
-            var computerNameRegex = new Regex(@"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$");
-
-            // Regex for valid hostname/IP
-            var hostnameRegex = new Regex(@"^(localhost|[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$");
-            var ipRegex = new Regex(@"^(\d{1,3}\.){3}\d{1,3}$");
-
-            return computerNameRegex.IsMatch(hostname) || hostnameRegex.IsMatch(hostname) || ipRegex.IsMatch(hostname);
+            return CommandExecutor.IsValidHostname(hostname);
         }
 
         #region Command Click Handlers
@@ -138,7 +123,7 @@ namespace WinUIApp
                 return;
             }
 
-            ExecuteCommandInternal($"ping -n 4 {EscapeShellArgument(hostname)}");
+            ExecuteCommandInternal($"ping -n 4 {CommandExecutor.EscapeShellArgument(hostname)}");
         }
 
         private void TracertButton_Click(object sender, RoutedEventArgs e)
@@ -150,7 +135,7 @@ namespace WinUIApp
                 return;
             }
 
-            ExecuteCommandRealtimeInternal($"tracert {EscapeShellArgument(hostname)}");
+            ExecuteCommandRealtimeInternal($"tracert {CommandExecutor.EscapeShellArgument(hostname)}");
         }
 
         private void QuserButton_Click(object sender, RoutedEventArgs e)
@@ -172,7 +157,7 @@ namespace WinUIApp
                 return;
             }
 
-            ExecuteCommandInternal($"nslookup {EscapeShellArgument(hostname)}");
+            ExecuteCommandInternal($"nslookup {CommandExecutor.EscapeShellArgument(hostname)}");
         }
 
         private void NetstatButton_Click(object sender, RoutedEventArgs e)
@@ -200,7 +185,7 @@ namespace WinUIApp
             else
             {
                 // For remote machine
-                ExecuteCommandInternal($"systeminfo /S {EscapeShellArgument(hostname)}");
+                ExecuteCommandInternal($"systeminfo /S {CommandExecutor.EscapeShellArgument(hostname)}");
             }
         }
 
@@ -224,7 +209,7 @@ namespace WinUIApp
             else
             {
                 // For remote machine
-                ExecuteCommandInternal($"tasklist /S {EscapeShellArgument(hostname)}");
+                ExecuteCommandInternal($"tasklist /S {CommandExecutor.EscapeShellArgument(hostname)}");
             }
         }
 
@@ -327,14 +312,14 @@ namespace WinUIApp
         {
             string helpText =
                 "Network Tool Commands Help:\n\n" +
-                "• Ping - Tests connectivity to a host\n" +
-                "• Tracert - Traces the route to a host\n" +
-                "• Quser - Displays logged-on users\n" +
-                "• Ipconfig - Displays network configuration\n" +
-                "• Nslookup - Queries DNS records\n" +
-                "• Netstat - Shows network connections\n" +
-                "• System Info - Displays system information\n" +
-                "• Task List - Shows running processes\n\n" +
+                "ï¿½ Ping - Tests connectivity to a host\n" +
+                "ï¿½ Tracert - Traces the route to a host\n" +
+                "ï¿½ Quser - Displays logged-on users\n" +
+                "ï¿½ Ipconfig - Displays network configuration\n" +
+                "ï¿½ Nslookup - Queries DNS records\n" +
+                "ï¿½ Netstat - Shows network connections\n" +
+                "ï¿½ System Info - Displays system information\n" +
+                "ï¿½ Task List - Shows running processes\n\n" +
                 "Enter a hostname or IP address in the text box for destination-specific commands.";
 
             ShowMessage("Help", helpText);
@@ -405,12 +390,6 @@ namespace WinUIApp
                 // Default to showing command in the results text box
                 ExecuteCommandInternal(command);
             }
-        }
-
-        private string EscapeShellArgument(string arg)
-        {
-            // Basic shell argument escaping to prevent command injection
-            return arg.Replace("&", "").Replace("|", "").Replace(";", "").Replace("(", "").Replace(")", "").Replace("<", "").Replace(">", "");
         }
 
         private async void ExecuteCommandInternal(string command)
